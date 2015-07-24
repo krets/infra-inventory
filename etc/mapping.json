@@ -7,6 +7,15 @@
         "_timestamp" : {
             "enabled" : true,
             "store" : true
-        }
+        },
+         "dynamic_templates": [
+            {
+                "OSRevision": {
+                    "match_pattern"     : "regex",
+                    "match"             : "[o|O][s|S][r|R]evision",
+                    "mapping"           : {"type": "string"}
+                }
+            }
+        ]
     }
 }

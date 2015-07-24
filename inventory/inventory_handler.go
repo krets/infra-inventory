@@ -57,6 +57,8 @@ func (ir *Inventory) AssetHandler(w http.ResponseWriter, r *http.Request) {
 		b, err := ioutil.ReadAll(r.Body)
 		defer r.Body.Close()
 
+		log.V(15).Infof("%s\n", b)
+
 		if err != nil {
 			code = 500
 			headers["Content-Type"] = "text/plain"
