@@ -4,7 +4,7 @@ NAME = infra-inventory
 BUILD_DIR = ./build
 
 clean:
-	rm -f ${BUILD_DIR}
+	rm -rf ${BUILD_DIR}
 	
 build:
 	go get -d -v ./...

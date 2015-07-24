@@ -40,7 +40,7 @@ func bootstrapServer() {
 
 func main() {
 	flag.Parse()
-	//flag.Set("logtostderr", "true")
+
 	bootstrapServer()
 
 	log.Infof("Elasticsearch: %s:%d/%s\n", *essHost, *essPort, *indexName)
