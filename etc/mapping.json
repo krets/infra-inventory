@@ -1,0 +1,12 @@
+{
+    "_default_": {
+        "_id": {
+            "index": "not_analyzed",
+            "store": true
+        },
+        "_timestamp" : {
+            "enabled" : true,
+            "store" : true
+        }
+    }
+}
