@@ -1,0 +1,21 @@
+{
+    "auth": {
+        "enabled": false,
+        "type": "activedirectory",
+        "config": {
+            "url": "ldaps://foo.bar.org:636",
+            "search_base": "DC=bar,DC=org",
+            "bind_dn": "CN=inventory_svc,OU=Services,OU=Bar,DC=bar,DC=org",
+            "bind_password": "..."
+        }
+    },
+    "datastore": {
+        "type": "elasticsearch",
+        "config": {
+            "host": "localhost",
+            "port": 9200,
+            "index": "inventory",
+            "mapping_file": "etc/mapping.json"
+        }
+    }
+}

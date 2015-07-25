@@ -18,8 +18,9 @@ Add asset
     - POST /v1/<asset_type>/<asset_id>
 
         {
-            "name": "foo.bar.com"
+            "name": "foo.bar.com",
             "status": "running"
+            ...
         }
 
 Edit asset
@@ -28,5 +29,6 @@ Edit asset
 
         {
             "status": "stopped"
+            ...
         }
 
