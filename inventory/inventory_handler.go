@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/euforia/ess-go-wrapper"
 	log "github.com/golang/glog"
-	"github.com/gorilla/mux"
-	//elastigo "github.com/mattbaird/elastigo/lib"
+	//"github.com/gorilla/mux"
+	elastigo "github.com/mattbaird/elastigo/lib"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -27,204 +28,142 @@ func (ir *Inventory) normalizeAssetType(assetType string) string {
 }
 
 /*
-	Handle getting assets GET /<asset_type>/<asset>
+	Returns:
+		should also return the params as elastic search globale args/opts
 */
-func (ir *Inventory) assetGetHandler(assetType, assetId string) (code int, headers map[string]string, data []byte) {
-	ans, err := ir.datastore.Get(assetType, assetId)
-	if err != nil {
-		code = 404
-		headers = map[string]string{"Content-Type": "text/plain"}
-		data = []byte(err.Error())
-	} else {
-		if data, err = json.Marshal(ans); err != nil {
-			code = 500
-			data = []byte(err.Error())
-			headers = map[string]string{"Content-Type": "text/plain"}
-		} else {
-			code = 200
-			headers = map[string]string{"Content-Type": "application/json"}
+func (ir *Inventory) parseRequestQueryParams(r *http.Request) (err error) {
+
+	paramsQuery := r.URL.Query()
+	log.V(12).Infof("%#v\n", paramsQuery)
+
+	// Parse global query opts.
+	if vals, ok := paramsQuery["sortby"]; ok {
+
+		sorting := make([]*elastigo.SortDsl, len(vals))
+
+		for i, v := range vals {
+			sarr := strings.Split(v, ":")
+			if len(sarr) != 2 {
+				err = fmt.Errorf("Invalid request: sortby=%s", v)
+				return
+			}
+			var sDsl *elastigo.SortDsl
+
+			switch sarr[1] {
+			case "asc":
+				sDsl = elastigo.Sort(sarr[0]).Asc()
+				break
+			case "dsc":
+				sDsl = elastigo.Sort(sarr[0]).Desc()
+				break
+			default:
+				err = fmt.Errorf("Invalid sort argument: %s", sarr[1])
+				return
+			}
+			sorting[i] = sDsl
 		}
+		b, _ := json.Marshal(sorting)
+		log.V(12).Infof("Query (sorting): %s\n", b)
 	}
 	return
 }
 
 /*
-	Handle adding assets POST /<asset_type>/<asset>
-	Handle editing assets PUT /<asset_type>/<asset>
-*/
-func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Request) (code int, headers map[string]string, data []byte) {
-	b, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	log.V(15).Infof("%s\n", b)
-
-	if err != nil {
-		code = 500
-		data = []byte(err.Error())
-		headers = map[string]string{"Content-Type": "text/plain"}
-		return
-	}
-
-	if len(b) < 1 {
-		code = 400
-		data = []byte(`No payload`)
-		headers = map[string]string{"Content-Type": "text/plain"}
-		return
-	}
-
-	var id string
-	switch r.Method {
-	case "POST":
-		id, err = ir.datastore.AddWithId(assetType, assetId, b)
-		break
-	case "PUT":
-		id, err = ir.datastore.Update(assetType, assetId, b)
-		break
-	}
-
-	if err != nil {
-		code = 404
-		headers = map[string]string{"Content-Type": "text/plain"}
-		data = []byte(err.Error())
-	} else {
-		code = 200
-		headers = map[string]string{"Content-Type": "application/json"}
-		data = []byte(`{"id": "` + id + `"}`)
-	}
-	return
-}
-
-/*
-	Handler for all method to endpoint: /<asset_type>/<asset>
-*/
-func (ir *Inventory) AssetHandler(w http.ResponseWriter, r *http.Request) {
-	var (
-		headers = map[string]string{}
-		code    int
-		data    = make([]byte, 0)
-
-		reqVars   = mux.Vars(r)
-		assetType = ir.normalizeAssetType(reqVars["asset_type"])
-		assetId   = reqVars["asset"]
-	)
-	log.V(15).Infof("%#v\n", reqVars)
-
-	switch r.Method {
-	case "GET":
-		code, headers, data = ir.assetGetHandler(assetType, assetId)
-		break
-	case "POST", "PUT":
-		code, headers, data = ir.assetPostPutHandler(assetType, assetId, r)
-		break
-	case "DELETE":
-		if ir.datastore.Delete(assetType, assetId) {
-			code = 200
-		} else {
-			code = 500
-		}
-		break
-	}
-
-	WriteAndLogResponse(w, r, code, headers, data)
-}
-
-/*
-
 {
 	"type": ["virtualserver", "physicalserver"],
 	"os": "ubuntu"
 }
-
 */
-func (ir *Inventory) buildQuery(userbody []byte) (q *esswrapper.BaseQuery, err error) {
-	var req map[string]interface{}
-	if err = json.Unmarshal(userbody, &req); err != nil {
-		return
-	}
+func (ir *Inventory) parseRequestBody(r *http.Request) (query interface{}, err error) {
 
-	fltr, err := esswrapper.NewMustFilter(req)
-	if err != nil {
-		return
-	}
-
-	q = &esswrapper.BaseQuery{
-		esswrapper.FilteredQuery{fltr},
-	}
-	return
-}
-
-func (ir *Inventory) parseSearchRequest(r *http.Request) (q *esswrapper.BaseQuery, err error) {
-
-	paramsQuery := r.URL.Query()
-	log.V(12).Infof("%#v\n", paramsQuery)
-	// Ignore error as body may not be required
+	// check happens earlier
 	var body []byte
-	body, err = ioutil.ReadAll(r.Body)
-	if err != nil {
+	if body, err = ioutil.ReadAll(r.Body); err != nil {
 		return
 	}
-	if len(body) < 1 {
-		err = fmt.Errorf("no request body")
+	defer r.Body.Close()
+
+	var req map[string]interface{}
+	if err = json.Unmarshal(body, &req); err != nil {
 		return
 	}
 
-	q, err = ir.buildQuery(body)
+	filterOps := []interface{}{}
 
-	return
-}
+	for k, v := range req {
+		switch v.(type) {
+		case string:
+			val, _ := v.(string)
+			val = strings.TrimSpace(val)
+			if strings.HasPrefix(val, ">") || strings.HasPrefix(val, "<") {
+				// Parse number
+				aVal := ""
+				if strings.HasPrefix(val, ">=") || strings.HasPrefix(val, "<=") {
+					aVal = strings.TrimSpace(val[2:])
+				} else {
+					aVal = strings.TrimSpace(val[1:])
+				}
+				// Parse number for comparison
+				var nVal interface{}
+				nVal, ierr := strconv.ParseInt(aVal, 10, 64)
+				if ierr != nil {
+					ierr = nil
+					if nVal, ierr = strconv.ParseFloat(aVal, 64); ierr != nil {
+						err = ierr
+						return
+					}
+				}
+				// Add range filterop
+				if strings.HasPrefix(val, ">") {
+					filterOps = append(filterOps, elastigo.Range().Field(k).Gt(nVal))
+				} else {
+					filterOps = append(filterOps, elastigo.Range().Field(k).Lt(nVal))
+				}
 
-/*
-	TODO: Needs implementation
-
-	Handle requests searching within an asset type
-*/
-func (ir *Inventory) AssetTypeHandler(w http.ResponseWriter, r *http.Request) {
-	var (
-		reqVars   = mux.Vars(r)
-		assetType = ir.normalizeAssetType(reqVars["asset_type"])
-		code      = 200
-		headers   = map[string]string{"Content-Type": "application/json"}
-		data      = []byte(`{"status":"To be implemented!"}`)
-	)
-	log.V(15).Infof("%#v\n", reqVars)
-
-	q, err := ir.parseSearchRequest(r)
-	if err != nil {
-		data = []byte(err.Error())
-		code = 400
-		headers["Content-Type"] = "text/plain"
-	} else {
-		rslt, err := ir.datastore.Search(assetType, q)
-		if err != nil {
-			data = []byte(err.Error())
-			code = 400
-			headers["Content-Type"] = "text/plain"
-		} else {
-			code = 200
-			data, _ = json.Marshal(rslt.Hits.Hits)
+			} else {
+				filterOps = append(filterOps, elastigo.Filter().Terms(k, val))
+			}
+			break
+		case int:
+			//val, _ := v.(int)
+			break
+		case int64:
+			//val, _ := v.(int64)
+			break
+		case float64:
+			//val, _ := v.(float64)
+			break
+		case []interface{}:
+			vals, _ := v.([]interface{})
+			filterOps = append(filterOps, elastigo.Filter().Terms(k, vals...))
+			break
+		case interface{}:
+			//val, _ := v.(interface{})
+			break
+		default:
+			err = fmt.Errorf("invalid type: %#v", v)
+			return
 		}
 	}
 
-	WriteAndLogResponse(w, r, code, headers, data)
+	query = elastigo.Search(ir.datastore.Index).Filter(filterOps...)
+
+	return
 }
 
-func (ir *Inventory) ListAssetTypeHandler(w http.ResponseWriter, r *http.Request) {
-	var (
-		types []string
-		err   error
-		b     []byte
-	)
+func (ir *Inventory) executeSearchQuery(assetType string, r *http.Request) (rslt elastigo.SearchResult, err error) {
+	var q interface{}
 
-	if types, err = ir.datastore.GetTypes(); err != nil {
-		WriteAndLogResponse(w, r, 500, map[string]string{"Content-Type": "text/plain"},
-			[]byte(err.Error()))
+	// IN PROGRESS
+	ir.parseRequestQueryParams(r)
+
+	if q, err = ir.parseRequestBody(r); err != nil {
 		return
 	}
 
-	if b, err = json.Marshal(types); err != nil {
-		WriteAndLogResponse(w, r, 500, map[string]string{"Content-Type": "text/plain"},
-			[]byte(err.Error()))
-		return
-	}
+	b, _ := json.MarshalIndent(q, " ", "  ")
+	log.V(15).Infof("%s ==> %s\n", r.RequestURI, b)
 
-	WriteAndLogResponse(w, r, 200, map[string]string{"Content-Type": "application/json"}, b)
+	rslt, err = ir.datastore.Search(assetType, q)
+	return
 }

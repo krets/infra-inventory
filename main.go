@@ -29,15 +29,19 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 	// Register http endpoints with muxer
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/v1/", inv.ListAssetTypeHandler).Methods("GET")
+
 	rtr.HandleFunc("/v1/{asset_type}", inv.AssetTypeHandler).Methods("GET")
 
 	if *enableAuth {
 		log.Infof("Auth enabled!\n")
+		// Setup handler with all pre-processors
 		rtr.HandleFunc("/v1/{asset_type}/{asset}",
 			inventory.AuthHandler(inv.AssetHandler)).Methods("GET", "POST", "PUT", "DELETE")
 	} else {
 		log.Infof("Auth disabled!\n")
-		rtr.HandleFunc("/v1/{asset_type}/{asset}", inv.AssetHandler).Methods("GET", "POST", "PUT", "DELETE")
+		// Setup handler with all pre-processors except auth
+		rtr.HandleFunc("/v1/{asset_type}/{asset}",
+			inv.AssetHandler).Methods("GET", "POST", "PUT", "DELETE")
 	}
 
 	http.Handle("/", rtr)
