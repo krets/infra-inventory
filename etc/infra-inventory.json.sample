@@ -16,6 +16,7 @@
             "port": 9200,
             "index": "inventory",
             "mapping_file": "etc/mapping.json"
-        }
+        },
+        "backup_dir": "backups"
     }
 }

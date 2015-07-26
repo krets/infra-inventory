@@ -2,10 +2,11 @@ package inventory
 
 import (
 	"encoding/json"
-	//"fmt"
+	"fmt"
 	"github.com/euforia/ess-go-wrapper"
 	log "github.com/golang/glog"
 	"github.com/gorilla/mux"
+	//elastigo "github.com/mattbaird/elastigo/lib"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -127,40 +128,80 @@ func (ir *Inventory) AssetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
+
+{
+	"type": ["virtualserver", "physicalserver"],
+	"os": "ubuntu"
+}
+
+*/
+func (ir *Inventory) buildQuery(userbody []byte) (q *esswrapper.BaseQuery, err error) {
+	var req map[string]interface{}
+	if err = json.Unmarshal(userbody, &req); err != nil {
+		return
+	}
+
+	fltr, err := esswrapper.NewMustFilter(req)
+	if err != nil {
+		return
+	}
+
+	q = &esswrapper.BaseQuery{
+		esswrapper.FilteredQuery{fltr},
+	}
+	return
+}
+
+func (ir *Inventory) parseSearchRequest(r *http.Request) (q *esswrapper.BaseQuery, err error) {
+
+	paramsQuery := r.URL.Query()
+	log.V(12).Infof("%#v\n", paramsQuery)
+	// Ignore error as body may not be required
+	var body []byte
+	body, err = ioutil.ReadAll(r.Body)
+	if err != nil {
+		return
+	}
+	if len(body) < 1 {
+		err = fmt.Errorf("no request body")
+		return
+	}
+
+	q, err = ir.buildQuery(body)
+
+	return
+}
+
+/*
 	TODO: Needs implementation
 
 	Handle requests searching within an asset type
 */
 func (ir *Inventory) AssetTypeHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		reqVars = mux.Vars(r)
-		//assetType = ir.normalizeAssetType(reqVars["asset_type"])
-		code    = 200
-		headers = map[string]string{"Content-Type": "application/json"}
-		data    = []byte(`{"status":"To be implemented!"}`)
+		reqVars   = mux.Vars(r)
+		assetType = ir.normalizeAssetType(reqVars["asset_type"])
+		code      = 200
+		headers   = map[string]string{"Content-Type": "application/json"}
+		data      = []byte(`{"status":"To be implemented!"}`)
 	)
 	log.V(15).Infof("%#v\n", reqVars)
 
-	body, _ := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-
-	log.V(12).Infof("Body: %s %d\n", body, len(body))
-
-	paramsQuery := r.URL.Query()
-
-	if len(paramsQuery) < 1 && len(body) < 1 {
-		code = 404
-		data = []byte("Not found!")
+	q, err := ir.parseSearchRequest(r)
+	if err != nil {
+		data = []byte(err.Error())
+		code = 400
 		headers["Content-Type"] = "text/plain"
 	} else {
-		var bodyQuery map[string]string
-		err := json.Unmarshal(body, &bodyQuery)
-		if err == nil {
-			// Process body
+		rslt, err := ir.datastore.Search(assetType, q)
+		if err != nil {
+			data = []byte(err.Error())
+			code = 400
+			headers["Content-Type"] = "text/plain"
+		} else {
+			code = 200
+			data, _ = json.Marshal(rslt.Hits.Hits)
 		}
-		//ir.datastore.GetBy()
-
-		log.V(12).Infof("%#v\n", paramsQuery)
 	}
 
 	WriteAndLogResponse(w, r, code, headers, data)

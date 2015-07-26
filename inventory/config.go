@@ -27,8 +27,9 @@ type EssDatastoreConfig struct {
 }
 
 type DatastoreConfig struct {
-	Type   string             `json:"type"`
-	Config EssDatastoreConfig `json:"config"`
+	Type      string             `json:"type"`
+	Config    EssDatastoreConfig `json:"config"`
+	BackupDir string             `json:"backup_dir"`
 }
 
 type InventoryConfig struct {
@@ -52,6 +53,10 @@ func LoadConfig(cfgfile string) (cfg *InventoryConfig, err error) {
 
 	if !filepath.IsAbs(cfg.Datastore.Config.MappingFile) {
 		cfg.Datastore.Config.MappingFile, _ = filepath.Abs(cfg.Datastore.Config.MappingFile)
+	}
+
+	if !filepath.IsAbs(cfg.Datastore.BackupDir) {
+		cfg.Datastore.BackupDir, _ = filepath.Abs(cfg.Datastore.BackupDir)
 	}
 	return
 }
