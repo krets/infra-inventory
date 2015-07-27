@@ -26,6 +26,10 @@ type EssDatastoreConfig struct {
 	MappingFile string `json:"mapping_file"`
 }
 
+type EndpointsConfig struct {
+	Prefix string `json:"prefix"`
+}
+
 type DatastoreConfig struct {
 	Type      string             `json:"type"`
 	Config    EssDatastoreConfig `json:"config"`
@@ -35,6 +39,7 @@ type DatastoreConfig struct {
 type InventoryConfig struct {
 	Auth      AuthConfig      `json:"auth"`
 	Datastore DatastoreConfig `json:"datastore"`
+	Endpoints EndpointsConfig `json:"endpoints"`
 }
 
 func LoadConfig(cfgfile string) (cfg *InventoryConfig, err error) {

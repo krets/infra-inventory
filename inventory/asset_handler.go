@@ -76,11 +76,12 @@ func (ir *Inventory) AssetHandler(w http.ResponseWriter, r *http.Request) {
 		code    int
 		data    = make([]byte, 0)
 
-		reqVars   = mux.Vars(r)
-		assetType = ir.normalizeAssetType(reqVars["asset_type"])
-		assetId   = reqVars["asset"]
+		restVars = mux.Vars(r)
+
+		assetType = ir.normalizeAssetType(restVars["asset_type"])
+		assetId   = restVars["asset"]
 	)
-	log.V(15).Infof("%#v\n", reqVars)
+	log.V(15).Infof("%#v\n", restVars)
 
 	switch r.Method {
 	case "GET":

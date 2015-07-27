@@ -32,7 +32,7 @@ func (ir *Inventory) AssetTypeHandler(w http.ResponseWriter, r *http.Request) {
 	WriteAndLogResponse(w, r, code, headers, data)
 }
 
-func (ir *Inventory) ListAssetTypeHandler(w http.ResponseWriter, r *http.Request) {
+func (ir *Inventory) ListAssetTypesHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		types []string
 		err   error

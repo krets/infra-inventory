@@ -18,5 +18,8 @@
             "mapping_file": "etc/mapping.json"
         },
         "backup_dir": "backups"
+    },
+    "endpoints":{
+        "prefix": "/v1"
     }
 }
