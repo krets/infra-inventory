@@ -51,5 +51,8 @@ enabled=1" >> /etc/yum.repos.d/elasticsearch.repo
   yum -y install java-1.8.0-openjdk
   yum -y install elasticsearch
   
+  chkconfig --add elasticsearch
+  service elasticsearch start
+
   SHELL
 end
