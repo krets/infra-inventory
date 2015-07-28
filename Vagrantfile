@@ -9,8 +9,8 @@ Vagrant.configure(2) do |config|
   # `vagrant box outdated`. This is not recommended.
   # config.vm.box_check_update = false
 
-  #config.vm.network "forwarded_port", guest: 9200, host: 9200
-  #config.vm.network "forwarded_port", guest: 9300, host: 9300
+  config.vm.network "forwarded_port", guest: 9200, host: 9200
+  config.vm.network "forwarded_port", guest: 9300, host: 9300
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
