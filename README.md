@@ -32,23 +32,24 @@ Run infra-inventory
 
 Usage
 -----
-The following query parameters are also available:
+The following query parameters are available depending on the endpoint:
 
     - version   int
     - sortby    <attr:[asc|desc]>
     - attrs     []
 
 ### Endpoints
+The following verbs and endpoints are available:
 
-List asset types
+List asset types:
 
     - GET /v1/
 
-Get asset 
+Get asset:
 
     - GET /v1/<asset_type>/<asset_id>
 
-Get a specific asset version
+Get a specific asset version:
 
     - GET /v1/<asset_type>/<asset_id>?version=<version>
 
@@ -56,7 +57,7 @@ Get last 10 asset versions:
 
     - GET /v1/<asset_type>/<asset_id>/versions
 
-Add asset
+Add asset:
 
     - POST /v1/<asset_type>/<asset_id>
 
@@ -66,7 +67,7 @@ Add asset
             ...
         }
 
-Edit asset
+Edit asset:
 
     - PUT /v1/<asset_type>/<asset_id>
 
@@ -75,7 +76,12 @@ Edit asset
             ...
         }
 
-Search for an asset that matches both attributes:
+Delete asset:
+
+    - DELETE /v1/<asset_type>/<asset_id>
+
+
+Search for an asset of type `asset_type` that matches both attributes:
 
     - GET /v1/<asset_type>
 
