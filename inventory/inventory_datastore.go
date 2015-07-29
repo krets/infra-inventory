@@ -28,7 +28,7 @@ func (ds *InventoryDatastore) GetAsset(assetType, assetId string) (asset elastig
 }
 
 func (ds *InventoryDatastore) CreateAsset(assetType, assetId string, data interface{}) (string, error) {
-	//log.V(10).Infof("%v\n", data)
+
 	_, err := ds.GetAsset(assetType, assetId)
 	if err == nil {
 		return "", fmt.Errorf("Asset already exists: %s", assetId)

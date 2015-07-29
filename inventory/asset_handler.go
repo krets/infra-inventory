@@ -2,7 +2,6 @@ package inventory
 
 import (
 	"encoding/json"
-	//"fmt"
 	log "github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"io/ioutil"
@@ -147,12 +146,10 @@ func (ir *Inventory) AssetVersionsHandler(w http.ResponseWriter, r *http.Request
 		code    int
 		data    = make([]byte, 0)
 
-		restVars = mux.Vars(r)
-
+		restVars  = mux.Vars(r)
 		assetType = ir.normalizeAssetType(restVars["asset_type"])
 		assetId   = restVars["asset"]
 	)
-	log.V(15).Infof("%#v\n", restVars)
 
 	// the count should come from a query param
 	assetVersions, err := ir.datastore.GetAssetVersions(assetType, assetId, 10)
@@ -161,9 +158,35 @@ func (ir *Inventory) AssetVersionsHandler(w http.ResponseWriter, r *http.Request
 		data = []byte(err.Error())
 		headers["Content-Type"] = "text/plain"
 	} else {
-		code = 200
-		data, _ = json.Marshal(assetVersions.Hits.Hits)
-		headers["Content-Type"] = "application/json"
+		log.V(11).Infof("Found versions: %d\n", assetVersions.Hits.Len())
+
+		if _, ok := r.URL.Query()["diff"]; ok {
+			// Generates diffs for versions
+			maplist := make([]map[string]interface{}, assetVersions.Hits.Len())
+			for i, ver := range assetVersions.Hits.Hits {
+				var m map[string]interface{}
+				if err := json.Unmarshal(*ver.Source, &m); err != nil {
+					log.Errorf("%s\n", err)
+				}
+				maplist[i] = m
+			}
+
+			diffs, err := GenerateVersionDiffs(maplist...)
+			if err != nil {
+				data = []byte(err.Error())
+				code = 400
+				headers["Content-Type"] = "text/plain"
+			} else {
+				code = 200
+				data, _ = json.Marshal(diffs)
+				headers["Content-Type"] = "application/json"
+			}
+		} else {
+			// Return full versions
+			code = 200
+			data, _ = json.Marshal(assetVersions.Hits.Hits)
+			headers["Content-Type"] = "application/json"
+		}
 	}
 
 	WriteAndLogResponse(w, r, code, headers, data)

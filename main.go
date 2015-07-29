@@ -38,7 +38,7 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 		log.Infof("Auth enabled!\n")
 
 		rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}",
-			inventory.AuthHandler(inv.AssetHandler)).Methods("GET", "POST", "PUT", "DELETE")
+			inventory.AuthOnWriteHandler(inv.AssetHandler)).Methods("GET", "POST", "PUT", "DELETE")
 	} else {
 		// Setup handler with all pre-processors except auth
 		log.Infof("Auth disabled!\n")
@@ -46,9 +46,6 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 		rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}",
 			inv.AssetHandler).Methods("GET", "POST", "PUT", "DELETE")
 	}
-
-	//rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}/{version:v[0-9]+}",
-	//	inv.AssetVersionHandler).Methods("GET")
 
 	rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}/versions",
 		inv.AssetVersionsHandler).Methods("GET")
