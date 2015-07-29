@@ -49,9 +49,11 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 
 	http.Handle("/", rtr)
 
-	log.Infof("Elasticsearch: %s:%d/%s\n", cfg.Datastore.Config.Host, cfg.Datastore.Config.Port,
-		cfg.Datastore.Config.Index)
-	log.Infof("Starting server on %s\n", *listenAddr)
+	log.Infof("Elasticsearch (%s): %s:%d/%s\n", cfg.Datastore.Config.Index, cfg.Datastore.Config.Host,
+		cfg.Datastore.Config.Port, cfg.Datastore.Config.Index)
+	log.Infof("Elasticsearch (%s): %s:%d/%s\n", dstore.VersionIndex, cfg.Datastore.Config.Host,
+		cfg.Datastore.Config.Port, dstore.VersionIndex)
+	log.Infof("Starting server on %s%s\n", *listenAddr, cfg.Endpoints.Prefix)
 }
 
 func loadConfig() *inventory.InventoryConfig {
