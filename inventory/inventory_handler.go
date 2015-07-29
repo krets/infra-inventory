@@ -3,7 +3,7 @@ package inventory
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/euforia/ess-go-wrapper"
+	//"github.com/euforia/ess-go-wrapper"
 	log "github.com/golang/glog"
 	//"github.com/gorilla/mux"
 	elastigo "github.com/mattbaird/elastigo/lib"
@@ -14,11 +14,13 @@ import (
 )
 
 type Inventory struct {
-	datastore *esswrapper.EssWrapper
+	//datastore *esswrapper.EssWrapper
+	datastore IDatastore
+	cfg       *InventoryConfig
 }
 
-func NewInventory(datastore *esswrapper.EssWrapper) (ir *Inventory) {
-	ir = &Inventory{datastore}
+func NewInventory(cfg *InventoryConfig, datastore IDatastore) (ir *Inventory) {
+	ir = &Inventory{datastore, cfg}
 	return
 }
 
@@ -146,7 +148,7 @@ func (ir *Inventory) parseRequestBody(r *http.Request) (query interface{}, err e
 		}
 	}
 
-	query = elastigo.Search(ir.datastore.Index).Filter(filterOps...)
+	query = elastigo.Search(ir.cfg.Datastore.Config.Index).Filter(filterOps...)
 
 	return
 }

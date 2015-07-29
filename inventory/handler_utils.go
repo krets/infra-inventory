@@ -6,7 +6,7 @@ import (
 )
 
 /* Auth handler to wrap any handler function */
-func AuthHandler(hFunc http.HandlerFunc) http.HandlerFunc {
+func AuthOnWriteHandler(hFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		switch r.Method {

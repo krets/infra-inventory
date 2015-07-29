@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	//"fmt"
-	"github.com/euforia/ess-go-wrapper"
+	//"github.com/euforia/ess-go-wrapper"
 	"github.com/euforia/infra-inventory/inventory"
 	log "github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -19,13 +19,14 @@ var (
 
 func bootstrapServer(cfg *inventory.InventoryConfig) {
 	// Instantiate datastore
-	dstore, err := esswrapper.NewEssWrapper(cfg.Datastore.Config.Host, cfg.Datastore.Config.Port,
+	dstore, err := inventory.NewElasticsearchDatastore(cfg.Datastore.Config.Host, cfg.Datastore.Config.Port,
 		cfg.Datastore.Config.Index, cfg.Datastore.Config.MappingFile)
 	if err != nil {
 		log.Fatalf("%s\n", err)
 	}
+	invDs := inventory.NewInventoryDatastore(dstore)
 	// New inventory instance
-	inv := inventory.NewInventory(dstore)
+	inv := inventory.NewInventory(cfg, invDs)
 	// Register http endpoints with muxer
 	rtr := mux.NewRouter()
 	rtr.HandleFunc(cfg.Endpoints.Prefix+"/", inv.ListAssetTypesHandler).Methods("GET")
@@ -37,7 +38,7 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 		log.Infof("Auth enabled!\n")
 
 		rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}",
-			inventory.AuthHandler(inv.AssetHandler)).Methods("GET", "POST", "PUT", "DELETE")
+			inventory.AuthOnWriteHandler(inv.AssetHandler)).Methods("GET", "POST", "PUT", "DELETE")
 	} else {
 		// Setup handler with all pre-processors except auth
 		log.Infof("Auth disabled!\n")
@@ -46,11 +47,16 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 			inv.AssetHandler).Methods("GET", "POST", "PUT", "DELETE")
 	}
 
+	rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}/versions",
+		inv.AssetVersionsHandler).Methods("GET")
+
 	http.Handle("/", rtr)
 
-	log.Infof("Elasticsearch: %s:%d/%s\n", cfg.Datastore.Config.Host, cfg.Datastore.Config.Port,
-		cfg.Datastore.Config.Index)
-	log.Infof("Starting server on %s\n", *listenAddr)
+	log.Infof("Elasticsearch (%s): %s:%d/%s\n", cfg.Datastore.Config.Index, cfg.Datastore.Config.Host,
+		cfg.Datastore.Config.Port, cfg.Datastore.Config.Index)
+	log.Infof("Elasticsearch (%s): %s:%d/%s\n", dstore.VersionIndex, cfg.Datastore.Config.Host,
+		cfg.Datastore.Config.Port, dstore.VersionIndex)
+	log.Infof("Starting server on %s%s\n", *listenAddr, cfg.Endpoints.Prefix)
 }
 
 func loadConfig() *inventory.InventoryConfig {
