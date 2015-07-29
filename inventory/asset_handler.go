@@ -101,7 +101,7 @@ func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Requ
 
 	switch r.Method {
 	case "POST":
-		id, err = ir.datastore.CreateAsset(assetType, assetId, reqData, false)
+		id, err = ir.datastore.CreateAsset(assetType, assetId, reqData, true)
 		break
 	case "PUT":
 		id, err = ir.datastore.EditAsset(assetType, assetId, reqData)
