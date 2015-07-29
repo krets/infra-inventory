@@ -47,6 +47,12 @@ func bootstrapServer(cfg *inventory.InventoryConfig) {
 			inv.AssetHandler).Methods("GET", "POST", "PUT", "DELETE")
 	}
 
+	//rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}/{version:v[0-9]+}",
+	//	inv.AssetVersionHandler).Methods("GET")
+
+	rtr.HandleFunc(cfg.Endpoints.Prefix+"/{asset_type}/{asset}/versions",
+		inv.AssetVersionsHandler).Methods("GET")
+
 	http.Handle("/", rtr)
 
 	log.Infof("Elasticsearch (%s): %s:%d/%s\n", cfg.Datastore.Config.Index, cfg.Datastore.Config.Host,

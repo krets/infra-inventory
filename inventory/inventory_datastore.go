@@ -162,7 +162,7 @@ func (ds *InventoryDatastore) CreateAssetVersion(asset elastigo.BaseResponse) (s
 func (ds *InventoryDatastore) GetAssetVersion(assetType, assetId string, version int64) (asset elastigo.BaseResponse, err error) {
 
 	if asset, err = ds.Conn.Get(ds.VersionIndex, assetType,
-		fmt.Sprintf("%s.%d", version), nil); err == nil && asset.Found {
+		fmt.Sprintf("%s.%d", assetId, version), nil); err == nil && asset.Found {
 		return
 	}
 	err = fmt.Errorf("Not found (%s/%s.%d): %s", assetType, assetId, version, err)

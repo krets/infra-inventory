@@ -8,6 +8,7 @@ Requirements
 
 go >= 1.4.2
 
+
 Installation
 ------------
 
@@ -15,11 +16,29 @@ go get github.com/euforia/infra-inventory
 
 cp $GOPATH/src/github.com/euforia/infra-inventory/etc/infra-inventory.json{.sample,}
 
-$GOPATH/bin/infra-inventory -logtostderr -v 10 -c $GOPATH/src/github.com/euforia/infra-inventory/etc/infra-inventory.json
+
+Running the Server
+------------------
+
+Make sure elasticsearch is runnin or start it.
+
+    - /etc/init.d/elasticsearch status
+    - /etc/init.d/elasticsearch start
+
+Run infra-inventory
+
+    - $GOPATH/bin/infra-inventory -logtostderr -v 10 -c $GOPATH/src/github.com/euforia/infra-inventory/etc/infra-inventory.json
 
 
 Usage
 -----
+The following query parameters are also available:
+
+    - version   int
+    - sortby    <attr:[asc|desc]>
+    - attrs     []
+
+### Endpoints
 
 List asset types
 
@@ -28,6 +47,14 @@ List asset types
 Get asset 
 
     - GET /v1/<asset_type>/<asset_id>
+
+Get a specific asset version
+
+    - GET /v1/<asset_type>/<asset_id>?version=<version>
+
+Get last 10 asset versions:
+
+    - GET /v1/<asset_type>/<asset_id>/versions
 
 Add asset
 
@@ -47,4 +74,14 @@ Edit asset
             "status": "stopped"
             ...
         }
+
+Search for an asset that matches both attributes:
+
+    - GET /v1/<asset_type>
+
+        {
+            "status": "stopped",
+            "os": "ubuntu"
+        }
+
 
