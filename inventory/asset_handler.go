@@ -2,12 +2,63 @@ package inventory
 
 import (
 	"encoding/json"
+	"fmt"
 	log "github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 )
+
+func (ir *Inventory) checkWriteRequest(r *http.Request) (data map[string]interface{}, err error) {
+	var body []byte
+	if body, err = ioutil.ReadAll(r.Body); err != nil {
+		return
+	}
+
+	var bmap map[string]interface{}
+	if err = json.Unmarshal(body, &bmap); err != nil {
+		return
+	}
+
+	data = map[string]interface{}{}
+	for k, v := range bmap {
+
+		updated := false
+		for _, rField := range ir.cfg.AssetCfg.RequiredFields {
+
+			if strings.EqualFold(k, rField) {
+				val, ok := v.(string)
+				if !ok {
+					err = fmt.Errorf("'%s' must be a string", rField)
+					return
+				}
+				val = strings.TrimSpace(val)
+				if len(val) < 1 {
+					err = fmt.Errorf("'%s' field required!", rField)
+					return
+				} else {
+					data[rField] = val
+					updated = true
+				}
+				break
+			}
+		}
+		if !updated {
+			data[k] = v
+		}
+		log.V(12).Infof("%#v\n", data)
+	}
+
+	for _, v := range ir.cfg.AssetCfg.RequiredFields {
+		if _, ok := data[v]; !ok {
+			err = fmt.Errorf("'%s' required", v)
+			return
+		}
+	}
+	return
+}
 
 /*
    Handle getting assets GET /<asset_type>/<asset>
@@ -36,28 +87,24 @@ func (ir *Inventory) assetGetHandler(assetType, assetId string) (code int, heade
    Handle editing assets PUT /<asset_type>/<asset>
 */
 func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Request) (code int, headers map[string]string, data []byte) {
-
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+	var (
+		reqData map[string]interface{}
+		err     error
+		id      string
+	)
+	if reqData, err = ir.checkWriteRequest(r); err != nil {
 		code = 400
 		data = []byte(err.Error())
 		headers = map[string]string{"Content-Type": "text/plain"}
 		return
 	}
-	defer r.Body.Close()
 
-	var id string
 	switch r.Method {
 	case "POST":
-		id, err = ir.datastore.CreateAsset(assetType, assetId, b)
+		id, err = ir.datastore.CreateAsset(assetType, assetId, reqData, false)
 		break
 	case "PUT":
-		var bmap map[string]interface{}
-		err = json.Unmarshal(b, &bmap)
-		if err != nil {
-			break
-		}
-		id, err = ir.datastore.EditAsset(assetType, assetId, bmap)
+		id, err = ir.datastore.EditAsset(assetType, assetId, reqData)
 		break
 	}
 

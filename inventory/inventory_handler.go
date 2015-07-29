@@ -13,6 +13,12 @@ import (
 	"strings"
 )
 
+type AssetResponse struct {
+	Id   string    `json:"id"`
+	Type string    `json:"type"`
+	Data AssetData `json:"data"`
+}
+
 type Inventory struct {
 	//datastore *esswrapper.EssWrapper
 	datastore IDatastore

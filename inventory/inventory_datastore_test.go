@@ -24,7 +24,7 @@ var (
 
 func Test_InventoryDatastore_CreateAsset(t *testing.T) {
 
-	id, err := testIds.CreateAsset(testAssetType, testData["name"], testData)
+	id, err := testIds.CreateAsset(testAssetType, testData["name"], testData, true)
 	if err != nil {
 		t.Fatalf("%s", err)
 	}

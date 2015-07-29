@@ -83,7 +83,7 @@ func GenerateVersionDiffs(versions ...map[string]interface{}) (list []VersionDif
 		}
 		//list[fmt.Sprintf("v%d", i+1)] = text
 		list[i] = VersionDiff{Version: verInt, AgainstVersion: verInt1, Diff: text}
-		// put next version back
+		// put next version back after the diff is calculated
 		versions[i+1]["version"] = verInt1
 	}
 	return

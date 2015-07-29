@@ -16,7 +16,7 @@ type IDatastore interface {
 	GetAssetVersion(assetType, assetId string, version int64) (elastigo.BaseResponse, error)
 	GetAssetVersions(assetType, assetId string, count int64) (elastigo.SearchResult, error)
 
-	CreateAsset(assetType, assetId string, data interface{}) (string, error)
+	CreateAsset(assetType, assetId string, data interface{}, createType bool) (string, error)
 	EditAsset(assetType, assetId string, data interface{}) (string, error)
 	RemoveAsset(assetType, assetId string) bool
 	//ListAssets(assetType string)

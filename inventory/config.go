@@ -36,10 +36,15 @@ type DatastoreConfig struct {
 	BackupDir string             `json:"backup_dir"`
 }
 
+type AssetConfig struct {
+	RequiredFields []string `json:"required_fields"`
+}
+
 type InventoryConfig struct {
 	Auth      AuthConfig      `json:"auth"`
 	Datastore DatastoreConfig `json:"datastore"`
 	Endpoints EndpointsConfig `json:"endpoints"`
+	AssetCfg  AssetConfig     `json:"asset"`
 }
 
 func LoadConfig(cfgfile string) (cfg *InventoryConfig, err error) {

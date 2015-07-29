@@ -7,16 +7,23 @@ import (
 	elastigo "github.com/mattbaird/elastigo/lib"
 )
 
-type BasicAsset struct {
-	Version int64 `json:"version"`
+/* currently only used to version up */
+type AssetData struct {
+	CreatedBy  string `json:"created_by"`
+	Envionment string `json:"environment"`
+	Status     string `json:"status"`
+	UpdatedBy  string `json:"updated_by"`
+	Version    int64  `json:"version,omitempty"`
 }
 
 type InventoryDatastore struct {
 	*ElasticsearchDatastore
+	// hold a list of asset types.
+	cachedAssetTypes []string
 }
 
 func NewInventoryDatastore(ds *ElasticsearchDatastore) *InventoryDatastore {
-	return &InventoryDatastore{ds}
+	return &InventoryDatastore{ds, []string{}}
 }
 
 func (ds *InventoryDatastore) GetAsset(assetType, assetId string) (asset elastigo.BaseResponse, err error) {
@@ -27,9 +34,33 @@ func (ds *InventoryDatastore) GetAsset(assetType, assetId string) (asset elastig
 	return
 }
 
-func (ds *InventoryDatastore) CreateAsset(assetType, assetId string, data interface{}) (string, error) {
+/* Check if the asset type exists */
+func (ds *InventoryDatastore) doesAssetTypeExist(assetType string) (err error) {
 
-	_, err := ds.GetAsset(assetType, assetId)
+	for _, vt := range ds.cachedAssetTypes {
+		if vt == assetType {
+			return
+		}
+	}
+	log.V(15).Infof("Refreshing asset type cache...\n")
+	if ds.cachedAssetTypes, err = ds.ListAssetTypes(); err != nil {
+		return
+	}
+	for _, vt := range ds.cachedAssetTypes {
+		if vt == assetType {
+			return
+		}
+	}
+	return fmt.Errorf("Invalid asset type: %s.  Available types: %v", assetType, ds.cachedAssetTypes)
+}
+
+func (ds *InventoryDatastore) CreateAsset(assetType, assetId string, data interface{}, createType bool) (string, error) {
+	err := ds.doesAssetTypeExist(assetType)
+	if err != nil && !createType {
+		return "", err
+	}
+
+	_, err = ds.GetAsset(assetType, assetId)
 	if err == nil {
 		return "", fmt.Errorf("Asset already exists: %s", assetId)
 	}
@@ -53,7 +84,6 @@ func (ds *InventoryDatastore) EditAsset(assetType, assetId string, data interfac
 	if err != nil {
 		return "", err
 	}
-	//log.V(12).Infof("%#v\n", asset)
 
 	resp, err := ds.Conn.Update(ds.Index, assetType, assetId, nil, map[string]interface{}{"doc": data})
 	if err != nil {
@@ -140,7 +170,7 @@ func (ds *InventoryDatastore) CreateAssetVersion(asset elastigo.BaseResponse) (s
 		src["version"] = 1
 		//asset["_timestamp"] = asset.
 	} else {
-		var ba BasicAsset
+		var ba AssetData
 		err := json.Unmarshal(*versionedAssets.Hits.Hits[0].Source, &ba)
 		if err != nil {
 			return "", err

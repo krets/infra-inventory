@@ -21,5 +21,8 @@
     },
     "endpoints":{
         "prefix": "/v1"
+    },
+    "asset": {
+        "required_fields": ["status", "environment"]
     }
 }
