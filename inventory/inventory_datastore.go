@@ -166,7 +166,7 @@ func (ds *InventoryDatastore) CreateAssetVersion(asset elastigo.BaseResponse) (s
 
 	versionedAssets, err := ds.GetAssetVersions(asset.Type, asset.Id, 1)
 	if err != nil || versionedAssets.Hits.Len() < 1 {
-		log.Warning("Creating new version anyway. Error=%s", err)
+		log.Warning("Creating new version anyway: Error=%s; Count=%d", err, versionedAssets.Hits.Len())
 		src["version"] = 1
 		//asset["_timestamp"] = asset.
 	} else {

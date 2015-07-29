@@ -14,9 +14,9 @@ import (
 )
 
 type AssetResponse struct {
-	Id   string    `json:"id"`
-	Type string    `json:"type"`
-	Data AssetData `json:"data"`
+	Id   string      `json:"id"`
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
 }
 
 type Inventory struct {

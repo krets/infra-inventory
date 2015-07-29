@@ -1,7 +1,9 @@
 package inventory
 
 import (
+	"encoding/json"
 	log "github.com/golang/glog"
+	elastigo "github.com/mattbaird/elastigo/lib"
 	"net/http"
 )
 
@@ -43,4 +45,26 @@ func WriteAndLogResponse(w http.ResponseWriter, r *http.Request, code int, heade
 
 	w.Write(data)
 	log.Infof("%s %d %s %d\n", r.Method, code, r.RequestURI, len(data))
+}
+
+func AssembleResponseFromBaseResponse(base elastigo.BaseResponse) (resp AssetResponse, err error) {
+	resp = AssetResponse{Id: base.Id, Type: base.Type}
+	err = json.Unmarshal(*base.Source, &resp.Data)
+	return
+}
+
+func AssembleResponseFromHit(hit elastigo.Hit) (resp AssetResponse, err error) {
+	resp = AssetResponse{Id: hit.Id, Type: hit.Type}
+	err = json.Unmarshal(*hit.Source, &resp.Data)
+	return
+}
+
+func AssembleResponseFromHits(hits []elastigo.Hit) (resp []AssetResponse, err error) {
+	resp = make([]AssetResponse, len(hits))
+	for i, h := range hits {
+		if resp[i], err = AssembleResponseFromHit(h); err != nil {
+			return
+		}
+	}
+	return
 }

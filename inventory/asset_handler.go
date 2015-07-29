@@ -31,12 +31,12 @@ func (ir *Inventory) checkWriteRequest(r *http.Request) (data map[string]interfa
 			if strings.EqualFold(k, rField) {
 				val, ok := v.(string)
 				if !ok {
-					err = fmt.Errorf("'%s' must be a string", rField)
+					err = fmt.Errorf("'%s' field must be a string!\n", rField)
 					return
 				}
 				val = strings.TrimSpace(val)
 				if len(val) < 1 {
-					err = fmt.Errorf("'%s' field required!", rField)
+					err = fmt.Errorf("'%s' field value required!\n", rField)
 					return
 				} else {
 					data[rField] = val
@@ -51,10 +51,12 @@ func (ir *Inventory) checkWriteRequest(r *http.Request) (data map[string]interfa
 		log.V(12).Infof("%#v\n", data)
 	}
 
-	for _, v := range ir.cfg.AssetCfg.RequiredFields {
-		if _, ok := data[v]; !ok {
-			err = fmt.Errorf("'%s' required", v)
-			return
+	if r.Method == "POST" {
+		for _, v := range ir.cfg.AssetCfg.RequiredFields {
+			if _, ok := data[v]; !ok {
+				err = fmt.Errorf("'%s' field required!\n", v)
+				return
+			}
 		}
 	}
 	return
@@ -70,7 +72,15 @@ func (ir *Inventory) assetGetHandler(assetType, assetId string) (code int, heade
 		headers = map[string]string{"Content-Type": "text/plain"}
 		data = []byte(err.Error())
 	} else {
-		if data, err = json.Marshal(ans); err != nil {
+		rsp, err := AssembleResponseFromBaseResponse(ans)
+		if err != nil {
+			code = 400
+			data = []byte(err.Error())
+			headers = map[string]string{"Content-Type": "text/plain"}
+			return
+		}
+
+		if data, err = json.Marshal(rsp); err != nil {
 			code = 500
 			data = []byte(err.Error())
 			headers = map[string]string{"Content-Type": "text/plain"}
@@ -136,8 +146,15 @@ func (ir *Inventory) assetGetVersionHandler(assetType, assetId, versionStr strin
 			data = []byte(err.Error())
 			headers = map[string]string{"Content-Type": "text/plain"}
 		} else {
+			rsp, err := AssembleResponseFromBaseResponse(asset)
+			if err != nil {
+				code = 400
+				data = []byte(err.Error())
+				headers = map[string]string{"Content-Type": "text/plain"}
+				return
+			}
 			code = 200
-			data, _ = json.Marshal(asset)
+			data, _ = json.Marshal(rsp)
 			headers = map[string]string{"Content-Type": "application/json"}
 		}
 	}
@@ -231,7 +248,8 @@ func (ir *Inventory) AssetVersionsHandler(w http.ResponseWriter, r *http.Request
 		} else {
 			// Return full versions
 			code = 200
-			data, _ = json.Marshal(assetVersions.Hits.Hits)
+			rsp, _ := AssembleResponseFromHits(assetVersions.Hits.Hits)
+			data, _ = json.Marshal(rsp)
 			headers["Content-Type"] = "application/json"
 		}
 	}
