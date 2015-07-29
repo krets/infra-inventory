@@ -55,10 +55,18 @@ func Test_InventoryDatastore_EditAsset(t *testing.T) {
 	if _, ok := d["name"]; !ok {
 		t.Fatalf("Overwrote exising object")
 	}
-	testIds.Close()
+	//testIds.Close()
 }
 
-/*
+func Test_InventoryDatastore_ListAssetTypes(t *testing.T) {
+	types, err := testIds.ListAssetTypes()
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
+
+	t.Logf("%#v", types)
+}
+
 func Test_InventoryDatastore_RemoveAsset(t *testing.T) {
 
 	if !testIds.RemoveAsset(testAssetType, testData["name"]) {
@@ -68,6 +76,7 @@ func Test_InventoryDatastore_RemoveAsset(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Did not remove asset")
 	}
+	testIds.Conn.DeleteIndex(testIds.Index)
+	testIds.Conn.DeleteIndex(testIds.VersionIndex)
 	testIds.Close()
 }
-*/

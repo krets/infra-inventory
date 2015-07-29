@@ -12,7 +12,7 @@ import (
    Handle getting assets GET /<asset_type>/<asset>
 */
 func (ir *Inventory) assetGetHandler(assetType, assetId string) (code int, headers map[string]string, data []byte) {
-	ans, err := ir.datastore.Get(assetType, assetId)
+	ans, err := ir.datastore.GetAsset(assetType, assetId)
 	if err != nil {
 		code = 404
 		headers = map[string]string{"Content-Type": "text/plain"}
@@ -48,10 +48,15 @@ func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Requ
 	var id string
 	switch r.Method {
 	case "POST":
-		id, err = ir.datastore.AddWithId(assetType, assetId, b)
+		id, err = ir.datastore.CreateAsset(assetType, assetId, b)
 		break
 	case "PUT":
-		id, err = ir.datastore.Update(assetType, assetId, b)
+		var bmap map[string]interface{}
+		err = json.Unmarshal(b, &bmap)
+		if err != nil {
+			break
+		}
+		id, err = ir.datastore.EditAsset(assetType, assetId, bmap)
 		break
 	}
 
@@ -91,7 +96,7 @@ func (ir *Inventory) AssetHandler(w http.ResponseWriter, r *http.Request) {
 		code, headers, data = ir.assetPostPutHandler(assetType, assetId, r)
 		break
 	case "DELETE":
-		if ir.datastore.Delete(assetType, assetId) {
+		if ir.datastore.RemoveAsset(assetType, assetId) {
 			code = 200
 		} else {
 			code = 500

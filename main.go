@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	//"fmt"
-	"github.com/euforia/ess-go-wrapper"
+	//"github.com/euforia/ess-go-wrapper"
 	"github.com/euforia/infra-inventory/inventory"
 	log "github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -19,13 +19,14 @@ var (
 
 func bootstrapServer(cfg *inventory.InventoryConfig) {
 	// Instantiate datastore
-	dstore, err := esswrapper.NewEssWrapper(cfg.Datastore.Config.Host, cfg.Datastore.Config.Port,
+	dstore, err := inventory.NewElasticsearchDatastore(cfg.Datastore.Config.Host, cfg.Datastore.Config.Port,
 		cfg.Datastore.Config.Index, cfg.Datastore.Config.MappingFile)
 	if err != nil {
 		log.Fatalf("%s\n", err)
 	}
+	invDs := inventory.NewInventoryDatastore(dstore)
 	// New inventory instance
-	inv := inventory.NewInventory(dstore)
+	inv := inventory.NewInventory(cfg, invDs)
 	// Register http endpoints with muxer
 	rtr := mux.NewRouter()
 	rtr.HandleFunc(cfg.Endpoints.Prefix+"/", inv.ListAssetTypesHandler).Methods("GET")

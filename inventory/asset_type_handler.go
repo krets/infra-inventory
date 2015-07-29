@@ -39,7 +39,7 @@ func (ir *Inventory) ListAssetTypesHandler(w http.ResponseWriter, r *http.Reques
 		b     []byte
 	)
 
-	if types, err = ir.datastore.GetTypes(); err != nil {
+	if types, err = ir.datastore.ListAssetTypes(); err != nil {
 		WriteAndLogResponse(w, r, 500, map[string]string{"Content-Type": "text/plain"},
 			[]byte(err.Error()))
 		return

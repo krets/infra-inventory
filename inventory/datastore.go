@@ -18,6 +18,7 @@ type IDatastore interface {
 	RemoveAsset(assetType, assetId string) bool
 	//ListAssets(assetType string)
 	ListAssetTypes() ([]string, error)
+	Search(assetType string, query interface{}) (elastigo.SearchResult, error)
 }
 
 type ElasticsearchVersion struct {
@@ -159,8 +160,16 @@ func (e *ElasticsearchDatastore) applyMappingFile(mapfile string) (err error) {
 
 	if err = e.Conn.PutMappingFromJSON(e.Index, mapname, mapbytes); err != nil {
 		return
+	} else {
+		log.Infof("Updated '%s' mapping for index '%s'\n", mapname, e.Index)
 	}
-	log.Infof("Updated '%s' mapping for index '%s'\n", mapname, e.Index)
+	// Versioning index
+	if err = e.Conn.PutMappingFromJSON(e.VersionIndex, mapname, mapbytes); err != nil {
+		return
+	} else {
+		log.Infof("Updated '%s' mapping for index '%s'\n", mapname, e.VersionIndex)
+	}
+
 	return
 }
 
@@ -170,6 +179,12 @@ func (e *ElasticsearchDatastore) initializeIndex(mappingFile string) error {
 		return err
 	}
 	log.V(3).Infof("Index created: %s %s\n", e.Index, resp)
+	// Versioning index
+	resp, err = e.Conn.CreateIndex(e.VersionIndex)
+	if err != nil {
+		return err
+	}
+	log.V(3).Infof("Version index created: %s %s\n", e.Index, resp)
 
 	if len(mappingFile) > 1 {
 		log.V(6).Infof("Applying mapping file: %s\n", mappingFile)
