@@ -18,10 +18,11 @@ type AuthCachingConfig struct {
 }
 
 type AuthConfig struct {
-	Enabled bool              `json:"enabled"`
-	Type    string            `json:"type"`
-	Config  ADAuthConfig      `json:"config"`
-	Caching AuthCachingConfig `json:"caching"`
+	Enabled    bool              `json:"enabled"`
+	Type       string            `json:"type"`
+	Config     ADAuthConfig      `json:"config"`
+	Caching    AuthCachingConfig `json:"caching"`
+	GroupsFile string            `json:"groups_file"`
 }
 
 type EssDatastoreConfig struct {
@@ -58,8 +59,9 @@ func LoadConfig(cfgfile string) (cfg *InventoryConfig, err error) {
 		cfgfile, _ = filepath.Abs(cfgfile)
 	}
 
-	b, err := ioutil.ReadFile(cfgfile)
-	if err != nil {
+	var b []byte
+
+	if b, err = ioutil.ReadFile(cfgfile); err != nil {
 		return
 	}
 	if err = json.Unmarshal(b, &cfg); err != nil {
@@ -73,5 +75,10 @@ func LoadConfig(cfgfile string) (cfg *InventoryConfig, err error) {
 	if !filepath.IsAbs(cfg.Datastore.BackupDir) {
 		cfg.Datastore.BackupDir, _ = filepath.Abs(cfg.Datastore.BackupDir)
 	}
+
+	if !filepath.IsAbs(cfg.Auth.GroupsFile) {
+		cfg.Auth.GroupsFile, _ = filepath.Abs(cfg.Auth.GroupsFile)
+	}
+
 	return
 }

@@ -58,6 +58,8 @@ func (ds *InventoryDatastore) CreateAsset(assetType, assetId string, data interf
 	err := ds.doesAssetTypeExist(assetType)
 	if err != nil && !createType {
 		return "", err
+	} else {
+		log.V(6).Infof("Auto creating asset type: %s\n", assetType)
 	}
 
 	_, err = ds.GetAsset(assetType, assetId)

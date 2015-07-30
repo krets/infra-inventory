@@ -123,7 +123,9 @@ func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Requ
 	case "POST":
 		reqData["created_by"] = reqUser
 		reqData["updated_by"] = reqUser
-		id, err = ir.datastore.CreateAsset(assetType, assetId, reqData, true)
+		// Allow admins to autocreate types
+		id, err = ir.datastore.CreateAsset(assetType, assetId, reqData,
+			ir.localAuthGroups.UserHasGroupMembership(reqUser, "admin"))
 		break
 	case "PUT":
 		reqData["updated_by"] = reqUser

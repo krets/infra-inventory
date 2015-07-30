@@ -7,7 +7,11 @@
             "search_base": "DC=bar,DC=org",
             "bind_dn": "CN=inventory_svc,OU=Services,OU=Bar,DC=bar,DC=org",
             "bind_password": "..."
-        }
+        },
+        "caching": { 
+            "ttl": 7200
+        },
+        "groups_file": "local-groups.json"
     },
     "datastore": {
         "type": "elasticsearch",

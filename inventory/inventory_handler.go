@@ -24,12 +24,18 @@ type Inventory struct {
 	cfg       *InventoryConfig
 
 	authClient *ldapclients.ActiveDirectoryClient
+	// Currently handles adding new asset types
+	localAuthGroups LocalAuthGroups
 }
 
 func NewInventory(cfg *InventoryConfig, datastore IDatastore) (ir *Inventory, err error) {
 	ir = &Inventory{
 		datastore: datastore,
 		cfg:       cfg,
+	}
+
+	if ir.localAuthGroups, err = LoadLocalAuthGroups(cfg.Auth.GroupsFile); err != nil {
+		return
 	}
 
 	if cfg.Auth.Enabled {
