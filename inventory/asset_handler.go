@@ -101,7 +101,17 @@ func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Requ
 		reqData map[string]interface{}
 		err     error
 		id      string
+
+		reqUser string
 	)
+
+	if reqUser, _, err = ir.authenticateRequest(r); err != nil {
+		code = 401
+		data = []byte(err.Error())
+		headers = map[string]string{"Content-Type": "text/plain"}
+		return
+	}
+
 	if reqData, err = ir.checkWriteRequest(r); err != nil {
 		code = 400
 		data = []byte(err.Error())
@@ -111,15 +121,18 @@ func (ir *Inventory) assetPostPutHandler(assetType, assetId string, r *http.Requ
 
 	switch r.Method {
 	case "POST":
+		reqData["created_by"] = reqUser
+		reqData["updated_by"] = reqUser
 		id, err = ir.datastore.CreateAsset(assetType, assetId, reqData, true)
 		break
 	case "PUT":
+		reqData["updated_by"] = reqUser
 		id, err = ir.datastore.EditAsset(assetType, assetId, reqData)
 		break
 	}
 
 	if err != nil {
-		code = 404
+		code = 400
 		headers = map[string]string{"Content-Type": "text/plain"}
 		data = []byte(err.Error())
 	} else {
@@ -175,7 +188,6 @@ func (ir *Inventory) AssetHandler(w http.ResponseWriter, r *http.Request) {
 		assetType = ir.normalizeAssetType(restVars["asset_type"])
 		assetId   = restVars["asset"]
 	)
-	log.V(15).Infof("%#v\n", restVars)
 
 	switch r.Method {
 	case "GET":

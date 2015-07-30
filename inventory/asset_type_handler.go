@@ -32,6 +32,9 @@ func (ir *Inventory) AssetTypeHandler(w http.ResponseWriter, r *http.Request) {
 	WriteAndLogResponse(w, r, code, headers, data)
 }
 
+/*
+   Handle requests to list asset type i.e GET /
+*/
 func (ir *Inventory) ListAssetTypesHandler(w http.ResponseWriter, r *http.Request) {
 	var (
 		types []string

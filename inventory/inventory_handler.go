@@ -3,9 +3,8 @@ package inventory
 import (
 	"encoding/json"
 	"fmt"
-	//"github.com/euforia/ess-go-wrapper"
+	"github.com/euforia/ldapclients-go"
 	log "github.com/golang/glog"
-	//"github.com/gorilla/mux"
 	elastigo "github.com/mattbaird/elastigo/lib"
 	"io/ioutil"
 	"net/http"
@@ -14,25 +13,66 @@ import (
 )
 
 type AssetResponse struct {
-	Id   string      `json:"id"`
-	Type string      `json:"type"`
+	Id   string `json:"id"`
+	Type string `json:"type"`
+	//Timestamp int64       `json:"timestamp"`
 	Data interface{} `json:"data"`
 }
 
 type Inventory struct {
-	//datastore *esswrapper.EssWrapper
 	datastore IDatastore
 	cfg       *InventoryConfig
+
+	authClient *ldapclients.ActiveDirectoryClient
 }
 
-func NewInventory(cfg *InventoryConfig, datastore IDatastore) (ir *Inventory) {
-	ir = &Inventory{datastore, cfg}
+func NewInventory(cfg *InventoryConfig, datastore IDatastore) (ir *Inventory, err error) {
+	ir = &Inventory{
+		datastore: datastore,
+		cfg:       cfg,
+	}
+
+	if cfg.Auth.Enabled {
+		log.V(6).Infof("Auth setup: '%s'\n", cfg.Auth.Type)
+		switch cfg.Auth.Type {
+		case "activedirectory":
+			ir.authClient, err = ldapclients.NewActiveDirectoryClient(cfg.Auth.Config.Url, cfg.Auth.Config.BindDN,
+				cfg.Auth.Config.BindPassword, cfg.Auth.Config.SearchBase)
+
+			log.V(7).Infof("Auth URL: %s\n", cfg.Auth.Config.Url)
+			log.V(7).Infof("Auth Bind DN: %s\n", cfg.Auth.Config.BindDN)
+			log.V(7).Infof("Auth SearchBase: %s\n", cfg.Auth.Config.SearchBase)
+
+			ir.authClient.EnableCaching(cfg.Auth.Caching.TTL)
+			log.V(7).Infof("Auth caching enabled - TTL: %d (0 = default value)\n", cfg.Auth.Caching.TTL)
+			break
+		default:
+			err = fmt.Errorf("Auth type not supported: %s", cfg.Auth.Type)
+			break
+		}
+	}
 	return
 }
 
 /* Normalize asset type input from user */
 func (ir *Inventory) normalizeAssetType(assetType string) string {
 	return strings.ToLower(assetType)
+}
+
+func (ir *Inventory) authenticateRequest(r *http.Request) (username, password string, err error) {
+	if ir.authClient != nil {
+		var ok bool
+		// 3 - just because
+		if username, password, ok = r.BasicAuth(); !ok || len(password) < 3 || len(username) < 3 {
+			err = fmt.Errorf("Unauthorized!")
+			return
+		}
+		if err = ir.authClient.Authenticate(username, password); err != nil {
+			return
+		}
+	}
+	// Auth disabled
+	return
 }
 
 /*

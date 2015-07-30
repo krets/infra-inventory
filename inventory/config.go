@@ -13,10 +13,15 @@ type ADAuthConfig struct {
 	BindPassword string `json:"bind_password"`
 }
 
+type AuthCachingConfig struct {
+	TTL int64 `json:"ttl"`
+}
+
 type AuthConfig struct {
-	Enabled bool         `json:"enabled"`
-	Type    string       `json:"type"`
-	Config  ADAuthConfig `json:"config"`
+	Enabled bool              `json:"enabled"`
+	Type    string            `json:"type"`
+	Config  ADAuthConfig      `json:"config"`
+	Caching AuthCachingConfig `json:"caching"`
 }
 
 type EssDatastoreConfig struct {
